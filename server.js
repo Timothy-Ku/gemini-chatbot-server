@@ -1,30 +1,38 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+
 require('dotenv').config();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Init Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 app.post('/chat', async (req, res) => {
-  const userMessage = req.body.message;
+  const { message } = req.body;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+    const result = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: message }] }],
+      }
+    );
 
-    const result = await model.generateContent(userMessage);
-    const response = await result.response;
-    const text = response.text();
-
-    res.json({ reply: text });
+    const reply = result.data.candidates?.[0]?.content?.parts?.[0]?.text || 'No reply';
+    res.json({ reply });
   } catch (error) {
-    console.error("Gemini Error:", error.message || error);
-    res.status(500).json({ reply: "Sorry, something went wrong." });
+    console.error('Gemini Error:', error.response?.data || error.message);
+    res.status(500).json({ reply: 'Sorry, something went wrong.' });
   }
 });
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.get('/', (req, res) => {
+  res.send('Gemini Chatbot API is live!');
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
