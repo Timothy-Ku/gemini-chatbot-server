@@ -11,6 +11,13 @@ app.use(bodyParser.json());
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// ✅ Allow your Vercel frontend domain
+app.use(cors({
+  origin: 'https://gemini-chatbot-xc5c.vercel.app', // ← Add your frontend domain here
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
+
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
 
